@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> arrayList = new ArrayList<>();
     MyHandler handler = new MyHandler();
     ArrayAdapter<String> adapter;
+    boolean count = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,31 +47,34 @@ public class MainActivity extends AppCompatActivity {
         refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                String html = arrayList.get(0);
-                Document doc = Jsoup.parse(html);
-                arrayList.set(0, doc.getElementsByTag("html").toString());
-                String html1 = arrayList.get(1);
-                Document doc1 = Jsoup.parseBodyFragment(html1);
-                arrayList.set(1, doc1.body().toString());
-                final String url = arrayList.get(2);
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            if (url.contains("http")) {
-                                Document doc2 = Jsoup.connect(url).get();
-                                Message msg = handler.obtainMessage();
-                                msg.obj = doc2.title();
-                                msg.what = 2;
-                                handler.sendMessage(msg);
-                            }else {
-                                refreshLayout.setRefreshing(false);
+                if (!count) {
+                    String html = arrayList.get(0);
+                    Document doc = Jsoup.parse(html);
+                    arrayList.set(0, doc.getElementsByTag("html").toString());
+                    String html1 = arrayList.get(1);
+                    Document doc1 = Jsoup.parseBodyFragment(html1);
+                    arrayList.set(1, doc1.body().toString());
+                    final String url = arrayList.get(2);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (url.contains("http")) {
+                                    Document doc2 = Jsoup.connect(url).get();
+                                    Message msg = handler.obtainMessage();
+                                    msg.obj = doc2.title();
+                                    msg.what = 2;
+                                    handler.sendMessage(msg);
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
                         }
-                    }
-                }).start();
+                    }).start();
+                    count = true;
+                } else {
+                    refreshLayout.setRefreshing(false);
+                }
             }
         });
     }
@@ -110,5 +114,11 @@ public class MainActivity extends AppCompatActivity {
             refreshLayout.setRefreshing(false);
             adapter.notifyDataSetChanged();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        ButterKnife.unbind(this);
     }
 }
